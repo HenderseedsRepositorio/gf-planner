@@ -564,7 +564,6 @@ function render(){
   <button class="fab" onclick="showFabMenu()" title="Agregar">${icon('plus',22)}</button>
   `;
 
-  if(searchOpen) setTimeout(()=>document.getElementById("search-input")?.focus(),50);
 }
 
 // ═══ Actions ═══
@@ -585,11 +584,25 @@ function scrollToStage(id){
   setTimeout(()=>document.getElementById("stage-"+id)?.scrollIntoView({behavior:"smooth",block:"start"}),50);
 }
 function setFilter(f){filter=f;render();}
-function setSearch(q){searchQuery=q;render();}
+let searchDebounce=null;
+function setSearch(q){
+  searchQuery=q;
+  clearTimeout(searchDebounce);
+  searchDebounce=setTimeout(()=>{
+    const scrollY=window.scrollY;
+    const input=document.getElementById("search-input");
+    const pos=input?input.selectionStart:0;
+    render();
+    const ni=document.getElementById("search-input");
+    if(ni){ni.focus();ni.setSelectionRange(pos,pos);}
+    window.scrollTo(0,scrollY);
+  },150);
+}
 function toggleSearch(){
   searchOpen=!searchOpen;
   if(!searchOpen)searchQuery="";
   render();
+  if(searchOpen) setTimeout(()=>{const i=document.getElementById("search-input");if(i)i.focus();},100);
 }
 
 // ═══ Stage management ═══
