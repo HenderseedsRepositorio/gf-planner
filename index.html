@@ -134,13 +134,19 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
 
 /* ─── Bottom sheet modal ─── */
 .modal-bg{position:fixed;inset:0;z-index:100;background:rgba(28,26,20,.35);backdrop-filter:blur(6px);animation:fadeIn .2s ease}
-.modal-sheet{position:fixed;bottom:0;left:0;right:0;z-index:101;background:var(--cream);border-radius:20px 20px 0 0;padding:20px 20px calc(20px + var(--safe-b));max-height:85vh;overflow-y:auto;animation:sheetUp .3s cubic-bezier(.22,1,.36,1);box-shadow:0 -8px 40px rgba(0,0,0,.1)}
-.modal-sheet .handle{width:36px;height:4px;border-radius:99px;background:rgba(0,0,0,.1);margin:0 auto 16px}
-.modal-sheet label{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);display:block;margin-bottom:6px}
-.modal-sheet input,.modal-sheet textarea,.modal-sheet select{width:100%;padding:12px 14px;border:1.5px solid rgba(0,0,0,.08);border-radius:12px;font-size:16px!important;background:rgba(255,255,255,.6);color:var(--ink);transition:border-color .2s}
-.modal-sheet input:focus,.modal-sheet textarea:focus,.modal-sheet select:focus{outline:none;border-color:var(--olive);box-shadow:0 0 0 3px rgba(94,107,46,.08)}
-.modal-sheet textarea{resize:vertical;min-height:60px}
+.modal-sheet{position:fixed;bottom:0;left:0;right:0;z-index:101;background:var(--cream);border-radius:16px 16px 0 0;padding:12px 16px calc(12px + var(--safe-b));max-height:90vh;overflow-y:auto;animation:sheetUp .3s cubic-bezier(.22,1,.36,1);box-shadow:0 -8px 40px rgba(0,0,0,.1)}
+.modal-sheet .handle{width:32px;height:3px;border-radius:99px;background:rgba(0,0,0,.1);margin:0 auto 8px}
+.modal-sheet .sheet-title{font-size:15px;font-weight:700;margin-bottom:10px}
+.modal-sheet label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);display:block;margin-bottom:3px}
+.modal-sheet input,.modal-sheet textarea,.modal-sheet select{width:100%;padding:8px 10px;border:1.5px solid rgba(0,0,0,.08);border-radius:10px;font-size:15px!important;background:rgba(255,255,255,.6);color:var(--ink);transition:border-color .2s}
+.modal-sheet input:focus,.modal-sheet textarea:focus,.modal-sheet select:focus{outline:none;border-color:var(--olive);box-shadow:0 0 0 2px rgba(94,107,46,.08)}
+.modal-sheet textarea{resize:none;min-height:40px;max-height:60px}
 .modal-sheet select{appearance:none;cursor:pointer}
+.sheet-grid{display:grid;gap:8px}
+.sheet-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sheet-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.sheet-actions{display:flex;gap:6px;margin-top:10px}
+.sheet-actions .btn{flex:1;padding:10px;font-size:13px;font-weight:600;border-radius:10px;justify-content:center}
 @keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
 @keyframes sheetDown{from{transform:none}to{transform:translateY(100%)}}
 
@@ -631,20 +637,22 @@ function editStage(id){
   <div class="modal-bg" onclick="closeModal()"></div>
   <div class="modal-sheet">
     <div class="handle"></div>
-    <h2 style="font-size:18px;font-weight:700;margin-bottom:16px">Editar etapa</h2>
-    <div style="display:grid;gap:14px">
-      <div>
-        <label>Nombre</label>
-        <input id="m-stage-name" type="text" value="${stage.name.replace(/"/g,'&quot;')}">
-      </div>
-      <div>
-        <label>Emoji</label>
-        <input id="m-stage-emoji" type="text" value="${stage.emoji}" style="width:80px">
+    <div class="sheet-title">Editar etapa</div>
+    <div class="sheet-grid">
+      <div class="sheet-row" style="grid-template-columns:1fr 70px">
+        <div>
+          <label>Nombre</label>
+          <input id="m-stage-name" type="text" value="${stage.name.replace(/"/g,'&quot;')}">
+        </div>
+        <div>
+          <label>Emoji</label>
+          <input id="m-stage-emoji" type="text" value="${stage.emoji}">
+        </div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:20px">
-      <button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-olive" style="flex:1" onclick="saveStage('${id}')">Guardar</button>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">✕</button>
+      <button class="btn btn-olive" onclick="saveStage('${id}')">Guardar</button>
     </div>
   </div>`;
   document.body.appendChild(el);
@@ -680,20 +688,22 @@ function addStage(){
   <div class="modal-bg" onclick="closeModal()"></div>
   <div class="modal-sheet">
     <div class="handle"></div>
-    <h2 style="font-size:18px;font-weight:700;margin-bottom:16px">Nueva etapa</h2>
-    <div style="display:grid;gap:14px">
-      <div>
-        <label>Nombre</label>
-        <input id="m-stage-name" type="text" placeholder="Nombre de la etapa">
-      </div>
-      <div>
-        <label>Emoji</label>
-        <input id="m-stage-emoji" type="text" value="📌" style="width:80px">
+    <div class="sheet-title">Nueva etapa</div>
+    <div class="sheet-grid">
+      <div class="sheet-row" style="grid-template-columns:1fr 70px">
+        <div>
+          <label>Nombre</label>
+          <input id="m-stage-name" type="text" placeholder="Nombre de la etapa">
+        </div>
+        <div>
+          <label>Emoji</label>
+          <input id="m-stage-emoji" type="text" value="📌">
+        </div>
       </div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:20px">
-      <button class="btn btn-ghost" style="flex:1" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-olive" style="flex:1" onclick="saveNewStage()">Crear</button>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">✕</button>
+      <button class="btn btn-olive" onclick="saveNewStage()">Crear</button>
     </div>
   </div>`;
   document.body.appendChild(el);
@@ -719,7 +729,7 @@ function showFabMenu(){
   <div class="modal-bg" onclick="closeModal()"></div>
   <div class="modal-sheet">
     <div class="handle"></div>
-    <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Agregar a...</h2>
+    <div class="sheet-title">Agregar a...</div>
     <div style="display:grid;gap:4px">
       ${DATA.stages.map(s=>`
       <button class="stage-menu-item" onclick="closeModal();addingTo='${s.id}';renderModal()">
@@ -809,13 +819,12 @@ function renderModal(){
   <div class="modal-bg" onclick="closeModal()"></div>
   <div class="modal-sheet">
     <div class="handle"></div>
-    <h2 style="font-size:18px;font-weight:700;margin-bottom:16px">${isEdit?"Editar tarea":"Nueva tarea"}</h2>
-    <div style="display:grid;gap:14px">
+    <div class="sheet-title">${isEdit?"Editar":"Nueva"} tarea</div>
+    <div class="sheet-grid">
       <div>
-        <label>Tarea</label>
         <input id="m-name" type="text" value="${task.name.replace(/"/g,'&quot;')}" placeholder="Nombre de la tarea">
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="sheet-row3">
         <div>
           <label>Prioridad</label>
           <select id="m-pri">
@@ -825,23 +834,22 @@ function renderModal(){
           </select>
         </div>
         <div>
-          <label>Fecha límite</label>
+          <label>Fecha</label>
           <input id="m-due" type="date" value="${task.due||''}">
+        </div>
+        <div>
+          <label>Gasto $</label>
+          <input id="m-cost" type="number" inputmode="numeric" min="0" step="1000" value="${task.cost||''}" placeholder="0">
         </div>
       </div>
       <div>
-        <label>💰 Presupuesto / Gasto ($)</label>
-        <input id="m-cost" type="number" inputmode="numeric" min="0" step="1000" value="${task.cost||''}" placeholder="Ej: 300000">
-      </div>
-      <div>
-        <label>Notas</label>
-        <textarea id="m-note" placeholder="Notas opcionales...">${task.note||""}</textarea>
+        <textarea id="m-note" placeholder="Notas (opcional)">${task.note||""}</textarea>
       </div>
     </div>
-    <div style="display:grid;gap:8px;margin-top:20px">
-      <button class="btn btn-olive btn-full" onclick="saveModal()">Guardar</button>
-      ${isEdit?`<button class="btn btn-danger btn-full" onclick="deleteFromModal()">Eliminar tarea</button>`:''}
-      <button class="btn btn-ghost btn-full" onclick="closeModal()">Cancelar</button>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">✕</button>
+      ${isEdit?`<button class="btn btn-danger" onclick="deleteFromModal()">Eliminar</button>`:''}
+      <button class="btn btn-olive" onclick="saveModal()">Guardar</button>
     </div>
   </div>`;
   document.body.appendChild(el);
@@ -898,6 +906,23 @@ document.addEventListener("keydown",e=>{
 
 // ═══ Auto-sync ═══
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)forceSync();});
+
+// ═══ Keyboard-aware modal ═══
+if(window.visualViewport){
+  window.visualViewport.addEventListener("resize",()=>{
+    const sheet=document.querySelector(".modal-sheet");
+    if(!sheet)return;
+    const vvh=window.visualViewport.height;
+    const wh=window.innerHeight;
+    if(vvh<wh-100){
+      // keyboard is open
+      sheet.style.maxHeight=vvh-10+"px";
+      sheet.style.bottom="0";
+    } else {
+      sheet.style.maxHeight="90vh";
+    }
+  });
+}
 
 // ═══ Init ═══
 render();
