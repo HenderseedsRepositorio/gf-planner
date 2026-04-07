@@ -908,20 +908,28 @@ document.addEventListener("keydown",e=>{
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)forceSync();});
 
 // ═══ Keyboard-aware modal ═══
+function adjustSheet(){
+  const sheet=document.querySelector(".modal-sheet");
+  if(!sheet||!window.visualViewport)return;
+  const vvh=window.visualViewport.height;
+  const vvtop=window.visualViewport.offsetTop;
+  const wh=window.innerHeight;
+  if(vvh<wh-100){
+    // keyboard open: fill ALL visible space, no wasted gap above
+    sheet.style.position="fixed";
+    sheet.style.top=vvtop+"px";
+    sheet.style.bottom="auto";
+    sheet.style.height=vvh+"px";
+    sheet.style.maxHeight=vvh+"px";
+    sheet.style.borderRadius="0";
+  } else {
+    sheet.style.position="";sheet.style.top="";sheet.style.bottom="";
+    sheet.style.height="";sheet.style.maxHeight="";sheet.style.borderRadius="";
+  }
+}
 if(window.visualViewport){
-  window.visualViewport.addEventListener("resize",()=>{
-    const sheet=document.querySelector(".modal-sheet");
-    if(!sheet)return;
-    const vvh=window.visualViewport.height;
-    const wh=window.innerHeight;
-    if(vvh<wh-100){
-      // keyboard is open
-      sheet.style.maxHeight=vvh-10+"px";
-      sheet.style.bottom="0";
-    } else {
-      sheet.style.maxHeight="90vh";
-    }
-  });
+  window.visualViewport.addEventListener("resize",adjustSheet);
+  window.visualViewport.addEventListener("scroll",adjustSheet);
 }
 
 // ═══ Init ═══
