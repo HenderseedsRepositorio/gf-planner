@@ -319,7 +319,7 @@ function saveData(d){
   clearTimeout(saveTimeout);
   syncStatus="saving"; updateSyncDot();
   saveTimeout=setTimeout(async()=>{
-    try{ const{error}=await sb.from("planner").upsert({id:1,data:d}); if(error)throw error; syncStatus="online"; }
+    try{ const{error}=await sb.from("planner").upsert({id:1,data:d},{onConflict:'id',ignoreDuplicates:false}); if(error)throw error; syncStatus="online"; }
     catch(e){ console.error("Sync:",e); syncStatus="error"; }
     updateSyncDot();
   },400);
@@ -329,8 +329,13 @@ async function loadRemote(){
   try{
     const{data,error}=await sb.from("planner").select("data").eq("id",1).single();
     if(error)throw error;
-    if(!data?.data?.stages)return null;
-    syncStatus="online"; return migrateData(data.data);
+    syncStatus="online";
+    // If Supabase has real data (with stages), return it
+    if(data?.data?.stages) return migrateData(data.data);
+    // If Supabase row exists but data is empty ({}), seed it with local data
+    console.log("[Sync] Remote row is empty, seeding with local data");
+    await sb.from("planner").update({data:DATA}).eq("id",1);
+    return null;
   }catch(e){console.error("Sync load:",e);syncStatus="error";return null;}
 }
 function updateSyncDot(){
@@ -916,8 +921,16 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)forceSync(
 render();
 (async()=>{
   const remote=await loadRemote();
-  if(remote){DATA=remote;saveLocal(DATA);openStages=new Set(DATA.stages.map(s=>s.id));render();}
-  else if(syncStatus!=="error"&&sb)saveData(DATA);
+  if(remote){
+    DATA=remote;saveLocal(DATA);
+    openStages=new Set(DATA.stages.map(s=>s.id));
+    render();
+    console.log("[Sync] Loaded remote data OK");
+  } else {
+    // NEVER push local data on init — only pull.
+    // Pushing here would overwrite phone changes with stale/default notebook data.
+    console.log("[Sync] No remote data or error, using local. Status:", syncStatus);
+  }
   updateSyncDot();
 })();
 </script>
