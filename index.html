@@ -64,10 +64,20 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
 .progress-track{height:5px;background:rgba(0,0,0,.04);border-radius:99px;overflow:hidden}
 .progress-fill{height:100%;border-radius:99px;transition:width .8s cubic-bezier(.22,1,.36,1);background:linear-gradient(90deg,var(--olive),var(--olive-dk))}
 
-/* ─── Blockers ─── */
-.blockers-section{margin-bottom:20px}
-.blocker{background:rgba(166,61,64,.04);border:1px solid rgba(166,61,64,.1);border-radius:14px;padding:14px 16px;display:flex;align-items:flex-start;gap:12px;transition:all .2s}
-.blocker:active{background:rgba(166,61,64,.07)}
+/* ─── Budget view ─── */
+.budget-section{margin-bottom:16px}
+.budget-stage{background:var(--cream);border-radius:14px;border:1px solid rgba(0,0,0,.04);overflow:hidden;margin-bottom:10px}
+.budget-stage-header{padding:12px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(0,0,0,.04)}
+.budget-stage-name{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.budget-stage-total{font-size:13px;font-weight:700;color:var(--olive-dk);font-family:'Playfair Display',serif}
+.budget-item{padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid rgba(0,0,0,.02)}
+.budget-item:last-child{border-bottom:none}
+.budget-item-name{font-size:13px;color:var(--ink);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.budget-item-cost{font-size:13px;font-weight:600;color:var(--olive-dk);white-space:nowrap;font-family:'Playfair Display',serif}
+.budget-total{background:var(--olive-dk);color:#fff;border-radius:14px;padding:16px;display:flex;align-items:center;justify-content:space-between;margin-top:12px}
+.budget-total-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;opacity:.8}
+.budget-total-num{font-size:1.4rem;font-weight:700;font-family:'Playfair Display',serif}
+.budget-empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px}
 
 /* ─── Toolbar ─── */
 .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;padding:2px 0}
@@ -217,10 +227,16 @@ body::before{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;
 
 /* ─── Print ─── */
 @media print{
-  .topbar,.toolbar,.fab,.task-actions,button{display:none!important}
+  .topbar,.toolbar,.fab,.task-actions,button,.pipeline,.search-bar{display:none!important}
   .stage-body{display:block!important}
-  body{background:#fff;padding-bottom:0}
-  .stat-chip,.stage,.blocker{break-inside:avoid}
+  body{background:#fff!important;padding-bottom:0!important}
+  body::before{display:none!important}
+  .shell{max-width:100%!important;padding:0 12px!important}
+  .stat-chip,.stage,.budget-stage{break-inside:avoid;border:1px solid #ddd!important}
+  .stage{margin-bottom:8px!important}
+  .task{padding:6px 10px!important}
+  .stats-strip{flex-wrap:wrap!important;padding:8px 0!important}
+  .budget-total{background:#333!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
 </style>
 </head>
@@ -432,6 +448,101 @@ function customConfirm(title,msg,onYes,yesLabel="Eliminar",yesDanger=true){
 }
 
 // ═══ Render ═══
+// ═══ Budget View ═══
+function renderBudgetView(){
+  let grandTotal=0;
+  const sections=DATA.stages.map(stage=>{
+    const items=stage.tasks.filter(t=>t.cost>0);
+    if(items.length===0)return"";
+    const subtotal=items.reduce((s,t)=>s+(t.cost||0),0);
+    grandTotal+=subtotal;
+    return`
+    <div class="budget-stage">
+      <div class="budget-stage-header">
+        <div class="budget-stage-name">${stage.emoji} ${stage.name}</div>
+        <div class="budget-stage-total">${fmtMoney(subtotal)}</div>
+      </div>
+      ${items.map(t=>`
+      <div class="budget-item" onclick="editTask('${stage.id}',${t.id})">
+        <span class="budget-item-name">${t.done?'✓ ':''}${t.name}</span>
+        <span class="budget-item-cost">${fmtMoney(t.cost)}</span>
+      </div>`).join("")}
+    </div>`;
+  }).join("");
+  if(!sections.replace(/\s/g,'')){
+    return`<div class="budget-empty">
+      <div style="font-size:28px;margin-bottom:8px">💰</div>
+      <div>No hay items con presupuesto cargado</div>
+      <div style="font-size:11px;margin-top:4px">Editá una tarea y poné un valor en "Gasto $"</div>
+    </div>`;
+  }
+  return`
+    <div class="budget-section">
+      <div class="section-title"><span>💰</span> Desglose de presupuesto</div>
+      ${sections}
+      <div class="budget-total">
+        <span class="budget-total-label">Total presupuestado</span>
+        <span class="budget-total-num">${fmtMoney(grandTotal)}</span>
+      </div>
+      <div style="text-align:center;margin-top:12px">
+        <button class="btn btn-ghost" onclick="exportBudgetPDF()" style="font-size:12px">📄 Exportar presupuesto PDF</button>
+      </div>
+    </div>`;
+}
+
+// ═══ Export PDF ═══
+function exportPDF(){
+  const s=stats();
+  let html=`<html><head><meta charset="UTF-8"><title>GF Studio — Plan</title>
+  <style>body{font-family:Arial,sans-serif;padding:24px;color:#1C1A14;max-width:700px;margin:0 auto}
+  h1{font-size:20px;margin-bottom:4px}h2{font-size:14px;color:#5C5840;margin:16px 0 8px;border-bottom:1px solid #ddd;padding-bottom:4px}
+  .task{display:flex;gap:8px;padding:4px 0;font-size:13px;border-bottom:1px solid #f0f0f0}
+  .done{opacity:.4;text-decoration:line-through}.cost{color:#3D4A18;font-weight:bold;margin-left:auto;white-space:nowrap}
+  .summary{background:#f5f3ee;padding:12px;border-radius:8px;margin-bottom:16px;font-size:13px}
+  .total{background:#3D4A18;color:#fff;padding:12px;border-radius:8px;font-size:16px;text-align:right;margin-top:16px}
+  </style></head><body>
+  <h1>GF Studio — Planificación</h1>
+  <p style="color:#5C5840;font-size:12px">${new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'})}</p>
+  <div class="summary">${s.done}/${s.total} tareas completadas · ${s.pct}% avance${s.totalCost?' · Total: '+fmtMoney(s.totalCost):''}</div>`;
+  DATA.stages.forEach(st=>{
+    html+=`<h2>${st.emoji} ${st.name}</h2>`;
+    st.tasks.forEach(t=>{
+      html+=`<div class="task"><span class="${t.done?'done':''}">${t.done?'☑':'☐'} ${t.name}</span>${t.cost?`<span class="cost">${fmtMoney(t.cost)}</span>`:''}</div>`;
+    });
+  });
+  if(s.totalCost) html+=`<div class="total">Total presupuestado: ${fmtMoney(s.totalCost)}</div>`;
+  html+=`</body></html>`;
+  const w=window.open('','_blank');
+  w.document.write(html);w.document.close();
+  setTimeout(()=>{w.print();},300);
+}
+
+function exportBudgetPDF(){
+  let grandTotal=0;
+  let html=`<html><head><meta charset="UTF-8"><title>GF Studio — Presupuesto</title>
+  <style>body{font-family:Arial,sans-serif;padding:24px;color:#1C1A14;max-width:600px;margin:0 auto}
+  h1{font-size:20px;margin-bottom:4px}h2{font-size:13px;color:#5C5840;margin:14px 0 6px;border-bottom:1px solid #ddd;padding-bottom:4px;display:flex;justify-content:space-between}
+  .item{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid #f5f5f5}
+  .cost{font-weight:bold;color:#3D4A18}.sub{font-weight:bold;color:#3D4A18}
+  .total{background:#3D4A18;color:#fff;padding:14px;border-radius:8px;font-size:18px;text-align:right;margin-top:20px}
+  </style></head><body>
+  <h1>GF Studio — Presupuesto</h1>
+  <p style="color:#5C5840;font-size:12px">${new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'})}</p>`;
+  DATA.stages.forEach(st=>{
+    const items=st.tasks.filter(t=>t.cost>0);
+    if(!items.length)return;
+    const sub=items.reduce((s,t)=>s+(t.cost||0),0);
+    grandTotal+=sub;
+    html+=`<h2><span>${st.emoji} ${st.name}</span><span class="sub">${fmtMoney(sub)}</span></h2>`;
+    items.forEach(t=>{html+=`<div class="item"><span>${t.name}</span><span class="cost">${fmtMoney(t.cost)}</span></div>`;});
+  });
+  html+=`<div class="total">TOTAL: ${fmtMoney(grandTotal)}</div></body></html>`;
+  const w=window.open('','_blank');
+  w.document.write(html);w.document.close();
+  setTimeout(()=>{w.print();},300);
+}
+
+// ═══ Render ═══
 function render(){
   const s=stats();
   document.getElementById("app").innerHTML=`
@@ -506,10 +617,11 @@ function render(){
       ${["todas","pendientes","completadas"].map(f=>`
         <button class="pill ${filter===f?'active':''}" onclick="setFilter('${f}')">${f.charAt(0).toUpperCase()+f.slice(1)}</button>
       `).join("")}
+      <button class="pill ${filter==="presupuesto"?'active':''}" onclick="setFilter('presupuesto')" style="${filter==='presupuesto'?'background:var(--olive-dk);color:#fff':''}">💰 Presupuesto</button>
     </div>
 
-    <!-- Stages -->
-    ${DATA.stages.map(stage=>{
+    <!-- Content: Stages or Budget view -->
+    ${filter==="presupuesto" ? renderBudgetView() : DATA.stages.map(stage=>{
       const tasks=filteredTasks(stage.tasks);
       const ss=stageStats(stage);
       const isOpen=openStages.has(stage.id);
@@ -781,6 +893,9 @@ function toggleMenu(){
     <button class="overflow-item" onclick="toggleMenu();toggleAllStages()">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
       ${openStages.size>0?'Colapsar todo':'Expandir todo'}
+    </button>
+    <button class="overflow-item" onclick="toggleMenu();exportPDF()">
+      ${icon('download',18)} Exportar PDF
     </button>
     <button class="overflow-item" onclick="toggleMenu();exportData()">
       ${icon('download',18)} Exportar JSON
